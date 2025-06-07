@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Search</title>
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary-color: #10a37f;
+            --primary-hover: #0d8a6a;
+            --bg-color: #343541;
+            --sidebar-color: #202123;
+            --text-color: #ececf1;
+            --border-color: #444654;
+            --input-bg: #40414f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-color);
+            height: 100vh;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close-sidebar {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 18px;
+            display: none;
+        }
+
+        .sidebar-title {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .sidebar-controls {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-button {
+            padding: 8px 12px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .sidebar-button:hover {
+            background-color: #4d4d5a;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #555;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .history-section {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .history-title {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: #8e8ea0;
+            margin-top: 10px;
+        }
+
+        .history-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 0 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item:hover {
+            background-color: #2a2b32;
+        }
+
+        .history-item-icon {
+            margin-right: 12px;
+            color: #8e8ea0;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .search-container {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-mode-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            background-color: var(--input-bg);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .search-mode-button {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+
+        .search-mode-button.active {
+            background-color: var(--primary-color);
+        }
+
+        .search-box-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            display: flex;
+            background-color: var(--input-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--primary-color);
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 16px;
+            outline: none;
+            line-height: 1.5;
+            height: 48px;
+        }
+
+        .search-button {
+            padding: 0 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .options-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .select-dropdown {
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .results-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+            padding: 10px;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .result-item {
+            background-color: var(--sidebar-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .result-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .cover-art {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            transition: opacity 0.2s;
+        }
+
+        .result-item:hover .cover-art {
+            opacity: 0.8;
+        }
+
+        .result-info {
+            padding: 10px;
+        }
+
+        .result-title {
+            font-size: 14px;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result-chapters {
+            font-size: 12px;
+            color: #8e8ea0;
+        }
+
+        .result-source {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+
+        .result-view-button {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .result-view-button:hover {
+            background-color: var(--primary-color);
+        }
+
+        .mobile-menu-button {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: var(--sidebar-color);
+            border: none;
+            color: var(--text-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 30;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #8e8ea0;
+            text-align: center;
+            width: 100%;
+        }
+
+        .empty-state-icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                transform: translateX(-100%);
+                width: 80%;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .close-sidebar {
+                display: block;
+            }
+
+            .mobile-menu-button {
+                display: flex;
+            }
+
+            .results-container {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .cover-art {
+                height: 160px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-button" id="mobileMenuButton">☰</button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Manga&Anime Search (Created with Deepseek)</h2>
+            <button class="close-sidebar" id="closeSidebar">×</button>
+        </div>
+        <div class="sidebar-title">Search History</div>
+        <div class="sidebar-controls">
+            <div class="toggle-container">
+                <span>Hide NSFW</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="nsfwToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <button class="sidebar-button" id="clearHistoryButton">
+                <span>Clear History</span>
+            </button>
+        </div>
+        <div class="history-section" id="historyContainer">
+            <!-- History items will be added here dynamically -->
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="search-container">
+            <div class="search-mode-toggle">
+                <button class="search-mode-button active" id="mangaModeButton">Manga</button>
+                <button class="search-mode-button" id="animeModeButton">Anime</button>
+            </div>
+            <div class="options-container">
+                <select class="select-dropdown" id="languageDropdown">
+                    <option value="en">English</option>
+                    <option value="jp">Japanese</option>
+                    <option value="native">Native (Original)</option>
+                    <option value="rm">Romanji</option>
+                </select>
+                <select class="select-dropdown" id="apiDropdown">
+                    <option value="both">Both (AniList & Jikan)</option>
+                    <option value="anilist">AniList</option>
+                    <option value="jikan">Jikan</option>
+                </select>
+            </div>
+            <div class="search-box-container">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search for manga...">
+                    <button class="search-button" id="searchButton">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9.5 3C11.2239 3 12.8772 3.68482 14.0962 4.90381C15.3152 6.12279 16 7.77609 16 9.5C16 11.11 15.41 12.59 14.44 13.73L14.71 14H15.5L20.5 19L19 20.5L14 15.5V14.71L13.73 14.44C12.59 15.41 11.11 16 9.5 16C7.77609 16 6.12279 15.3152 4.90381 14.0962C3.68482 12.8772 3 11.2239 3 9.5C3 7.77609 3.68482 6.12279 4.90381 4.90381C6.12279 3.68482 7.77609 3 9.5 3ZM9.5 5C7 5 5 7 5 9.5C5 12 7 14 9.5 14C12 14 14 12 14 9.5C14 7 12 5 9.5 5Z" fill="white"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="results-container" id="resultsContainer">
+                <!-- Results will be added here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const searchInput = document.getElementById('searchInput');
+            const searchButton = document.getElementById('searchButton');
+            const languageDropdown = document.getElementById('languageDropdown');
+            const apiDropdown = document.getElementById('apiDropdown');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const historyContainer = document.getElementById('historyContainer');
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuButton = document.getElementById('mobileMenuButton');
+            const closeSidebar = document.getElementById('closeSidebar');
+            const notification = document.getElementById('notification');
+            const clearHistoryButton = document.getElementById('clearHistoryButton');
+            const nsfwToggle = document.getElementById('nsfwToggle');
+            const mangaModeButton = document.getElementById('mangaModeButton');
+            const animeModeButton = document.getElementById('animeModeButton');
+
+            // Variables
+            let searchHistory = JSON.parse(localStorage.getItem('mangaSearchHistory')) || [];
+            let isMangaMode = true;
+            let hideNSFW = true; // Enabled by default
+
+            // NSFW tags to filter
+            const nsfwTags = [
+                'hentai', 'ecchi', 'erotica', 'adult', 'mature', 'nsfw',
+                'sexual content', 'explicit', 'suggestive', 'smut', 'pornographic'
+            ];
+
+            // Initialize
+            renderSearchHistory();
+            updateEmptyState();
+
+            // Event Listeners
+            searchButton.addEventListener('click', performSearch);
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    performSearch();
+                }
+            });
+            mobileMenuButton.addEventListener('click', toggleSidebar);
+            closeSidebar.addEventListener('click', toggleSidebar);
+            clearHistoryButton.addEventListener('click', clearSearchHistory);
+            nsfwToggle.addEventListener('change', function() {
+                hideNSFW = this.checked;
+            });
+            mangaModeButton.addEventListener('click', function() {
+                if (!isMangaMode) {
+                    isMangaMode = true;
+                    mangaModeButton.classList.add('active');
+                    animeModeButton.classList.remove('active');
+                    searchInput.placeholder = "Search for manga...";
+                }
+            });
+            animeModeButton.addEventListener('click', function() {
+                if (isMangaMode) {
+                    isMangaMode = false;
+                    animeModeButton.classList.add('active');
+                    mangaModeButton.classList.remove('active');
+                    searchInput.placeholder = "Search for anime...";
+                }
+            });
+
+            // Functions
+            function performSearch() {
+                const query = searchInput.value.trim();
+                if (!query) return;
+
+                const language = languageDropdown.value;
+                const api = apiDropdown.value;
+
+                // Save to history
+                const searchEntry = {
+                    query,
+                    language,
+                    api,
+                    isManga: isMangaMode,
+                    timestamp: new Date().getTime(),
+                    results: []
+                };
+
+                searchHistory.unshift(searchEntry);
+                saveHistory();
+                renderSearchHistory();
+
+                // Clear previous results
+                resultsContainer.innerHTML = '';
+
+                // Perform search based on selected API
+                if (api === 'anilist' || api === 'both') {
+                    if (isMangaMode) {
+                        searchAniListManga(query, language);
+                    } else {
+                        searchAniListAnime(query, language);
+                    }
+                }
+                if (api === 'jikan' || api === 'both') {
+                    if (isMangaMode) {
+                        searchJikanManga(query, language);
+                    } else {
+                        searchJikanAnime(query, language);
+                    }
+                }
+            }
+
+            async function searchAniListManga(query, language) {
+                try {
+                    const response = await fetch('https://graphql.anilist.co', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: `
+                                query ($search: String, $perPage: Int) {
+                                    Page(perPage: $perPage) {
+                                        media(search: $search, type: MANGA) {
+                                            id
+                                            idMal
+                                            title {
+                                                romaji
+                                                english
+                                                native
+                                            }
+                                            coverImage {
+                                                large
+                                            }
+                                            chapters
+                                            isAdult
+                                            genres
+                                            tags {
+                                                name
+                                                isAdult
+                                            }
+                                            siteUrl
+                                            countryOfOrigin
+                                        }
+                                    }
+                                }
+                            `,
+                            variables: {
+                                search: query,
+                                perPage: 20
+                            }
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.data && data.data.Page.media) {
+                        displayResults(data.data.Page.media, 'AniList', language);
+                        // Save results to history
+                        if (searchHistory[0].query === query) {
+                            searchHistory[0].results = searchHistory[0].results.concat(data.data.Page.media.map(item => ({
+                                source: 'AniList',
+                                id: item.id,
+                                malId: item.idMal,
+                                title: getTitleByLanguage(item.title, language, item.countryOfOrigin),
+                                coverImage: item.coverImage.large,
+                                chapters: item.chapters,
+                                isAdult: item.isAdult || isNsfwContent(item.genres, item.tags),
+                                siteUrl: item.siteUrl,
+                                countryOfOrigin: item.countryOfOrigin
+                            })));
+                            saveHistory();
+                        }
+                    }
+                } catch (error) {
+                    console.error('AniList search error:', error);
+                    showNotification('Failed to search AniList');
+                }
+            }
+
+            async function searchAniListAnime(query, language) {
+                try {
+                    const response = await fetch('https://graphql.anilist.co', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: `
+                                query ($search: String, $perPage: Int) {
+                                    Page(perPage: $perPage) {
+                                        media(search: $search, type: ANIME) {
+                                            id
+                                            idMal
+                                            title {
+                                                romaji
+                                                english
+                                                native
+                                            }
+                                            coverImage {
+                                                large
+                                            }
+                                            episodes
+                                            isAdult
+                                            genres
+                                            tags {
+                                                name
+                                                isAdult
+                                            }
+                                            siteUrl
+                                            countryOfOrigin
+                                        }
+                                    }
+                                }
+                            `,
+                            variables: {
+                                search: query,
+                                perPage: 20
+                            }
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.data && data.data.Page.media) {
+                        displayResults(data.data.Page.media, 'AniList', language, false);
+                        // Save results to history
+                        if (searchHistory[0].query === query) {
+                            searchHistory[0].results = searchHistory[0].results.concat(data.data.Page.media.map(item => ({
+                                source: 'AniList',
+                                id: item.id,
+                                malId: item.idMal,
+                                title: getTitleByLanguage(item.title, language, item.countryOfOrigin),
+                                coverImage: item.coverImage.large,
+                                episodes: item.episodes,
+                                isAdult: item.isAdult || isNsfwContent(item.genres, item.tags),
+                                siteUrl: item.siteUrl,
+                                countryOfOrigin: item.countryOfOrigin
+                            })));
+                            saveHistory();
+                        }
+                    }
+                } catch (error) {
+                    console.error('AniList search error:', error);
+                    showNotification('Failed to search AniList');
+                }
+            }
+
+            async function searchJikanManga(query, language) {
+                try {
+                    const response = await fetch(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(query)}&limit=20`);
+                    const data = await response.json();
+                    if (data.data) {
+                        displayResults(data.data, 'Jikan', language);
+                        // Save results to history
+                        if (searchHistory[0].query === query) {
+                            searchHistory[0].results = searchHistory[0].results.concat(data.data.map(item => ({
+                                source: 'Jikan',
+                                id: item.mal_id,
+                                malId: item.mal_id,
+                                title: getTitleByLanguage({
+                                    romaji: item.title,
+                                    english: item.title_english,
+                                    native: item.title_japanese
+                                }, language, item.countryOfOrigin || (item.title_japanese ? 'JP' : item.title_english ? 'US' : null)),
+                                coverImage: item.images?.jpg?.large_image_url,
+                                chapters: item.chapters,
+                                isAdult: item.explicit_genres && item.explicit_genres.length > 0 || isNsfwContent(item.genres),
+                                siteUrl: item.url,
+                                countryOfOrigin: item.countryOfOrigin || (item.title_japanese ? 'JP' : item.title_english ? 'US' : null)
+                            })));
+                            saveHistory();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Jikan search error:', error);
+                    showNotification('Failed to search Jikan');
+                }
+            }
+
+            async function searchJikanAnime(query, language) {
+                try {
+                    const response = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=20`);
+                    const data = await response.json();
+                    if (data.data) {
+                        displayResults(data.data, 'Jikan', language, false);
+                        // Save results to history
+                        if (searchHistory[0].query === query) {
+                            searchHistory[0].results = searchHistory[0].results.concat(data.data.map(item => ({
+                                source: 'Jikan',
+                                id: item.mal_id,
+                                malId: item.mal_id,
+                                title: getTitleByLanguage({
+                                    romaji: item.title,
+                                    english: item.title_english,
+                                    native: item.title_japanese
+                                }, language, item.countryOfOrigin || (item.title_japanese ? 'JP' : item.title_english ? 'US' : null)),
+                                coverImage: item.images?.jpg?.large_image_url,
+                                episodes: item.episodes,
+                                isAdult: item.rating === 'Rx - Hentai' || isNsfwContent(item.genres),
+                                siteUrl: item.url,
+                                countryOfOrigin: item.countryOfOrigin || (item.title_japanese ? 'JP' : item.title_english ? 'US' : null)
+                            })));
+                            saveHistory();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Jikan search error:', error);
+                    showNotification('Failed to search Jikan');
+                }
+            }
+
+            function isNsfwContent(genres, tags = []) {
+                if (!genres && !tags) return false;
+                
+                // Check genres
+                const genreNames = genres ? genres.map(g => g.toLowerCase()) : [];
+                const hasNsfwGenre = genreNames.some(genre => 
+                    nsfwTags.some(tag => genre.includes(tag))
+                );
+                if (hasNsfwGenre) return true;
+                
+                // Check tags (for AniList)
+                if (tags && tags.length > 0) {
+                    const tagNames = tags.map(t => t.name.toLowerCase());
+                    const hasNsfwTag = tagNames.some(tag => 
+                        nsfwTags.some(nsfwTag => tag.includes(nsfwTag))
+                    );
+                    if (hasNsfwTag) return true;
+                    
+                    // Also check if any tag is marked as adult
+                    const hasAdultTag = tags.some(t => t.isAdult);
+                    if (hasAdultTag) return true;
+                }
+                
+                return false;
+            }
+
+            function displayResults(results, source, language, isManga = true) {
+                let filteredResults = results;
+                
+                if (hideNSFW) {
+                    filteredResults = results.filter(item => {
+                        if (source === 'AniList') {
+                            return !(item.isAdult || isNsfwContent(item.genres, item.tags));
+                        } else { // Jikan
+                            if (isManga) {
+                                return !(item.explicit_genres && item.explicit_genres.length > 0 || isNsfwContent(item.genres));
+                            } else {
+                                return !(item.rating === 'Rx - Hentai' || isNsfwContent(item.genres));
+                            }
+                        }
+                    });
+                }
+
+                if (filteredResults.length === 0) {
+                    updateEmptyState("No results found" + (hideNSFW ? " (NSFW content hidden)" : ""));
+                    return;
+                }
+
+                filteredResults.forEach(item => {
+                    let title, coverImage, count, isAdult, siteUrl, countryOfOrigin;
+                    
+                    if (source === 'AniList') {
+                        countryOfOrigin = item.countryOfOrigin;
+                        title = getTitleByLanguage(item.title, language, countryOfOrigin);
+                        coverImage = item.coverImage.large;
+                        count = isManga ? item.chapters : item.episodes;
+                        isAdult = item.isAdult || isNsfwContent(item.genres, item.tags);
+                        siteUrl = item.siteUrl;
+                    } else { // Jikan
+                        countryOfOrigin = item.countryOfOrigin || (item.title_japanese ? 'JP' : item.title_english ? 'US' : null);
+                        title = getTitleByLanguage({
+                            romaji: item.title,
+                            english: item.title_english,
+                            native: item.title_japanese
+                        }, language, countryOfOrigin);
+                        coverImage = item.images?.jpg?.large_image_url;
+                        count = isManga ? item.chapters : item.episodes;
+                        isAdult = isManga ? 
+                            (item.explicit_genres && item.explicit_genres.length > 0 || isNsfwContent(item.genres)) :
+                            (item.rating === 'Rx - Hentai' || isNsfwContent(item.genres));
+                        siteUrl = item.url;
+                    }
+
+                    if (!title) title = "Unknown Title";
+                    if (!coverImage) coverImage = 'https://via.placeholder.com/150x200?text=No+Image';
+                    if (!siteUrl) siteUrl = 'https://anilist.co';
+
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+                    resultItem.innerHTML = `
+                        <img src="${coverImage}" alt="${title}" class="cover-art">
+                        <div class="result-source">${source}</div>
+                        <button class="result-view-button" data-url="${siteUrl}">View</button>
+                        <div class="result-info">
+                            <div class="result-title">${title}</div>
+                            <div class="result-chapters">${isManga ? 'Chapters' : 'Episodes'}: ${count !== null && count !== undefined ? count : 'Unknown'}</div>
+                        </div>
+                    `;
+
+                    if (isAdult) {
+                        resultItem.classList.add('nsfw-item');
+                    }
+
+                    resultItem.addEventListener('click', (e) => {
+                        // Don't copy if clicking the view button
+                        if (!e.target.classList.contains('result-view-button')) {
+                            copyToClipboard(title);
+                            showNotification(`Copied: ${title}`);
+                        }
+                    });
+
+                    resultsContainer.appendChild(resultItem);
+                });
+                
+                // Add event listeners to view buttons
+                document.querySelectorAll('.result-view-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        window.open(button.getAttribute('data-url'), '_blank');
+                    });
+                });
+                
+                updateEmptyState();
+            }
+
+            function getTitleByLanguage(titleObj, language, countryOfOrigin = null) {
+                switch (language) {
+                    case 'en':
+                        return titleObj.english || titleObj.romaji || titleObj.native || '';
+                    case 'jp':
+                        // Only return Japanese title if the work is from Japan
+                        if (countryOfOrigin === 'JP') {
+                            return titleObj.native || titleObj.romaji || titleObj.english || '';
+                        }
+                        return titleObj.english || titleObj.romaji || titleObj.native || '';
+                    case 'native':
+                        // Return the native title based on country of origin
+                        if (countryOfOrigin === 'JP' && titleObj.native) {
+                            return titleObj.native;
+                        } else if (countryOfOrigin === 'KR' && titleObj.native) {
+                            return titleObj.native;
+                        } else if (countryOfOrigin === 'CN' && titleObj.native) {
+                            return titleObj.native;
+                        }
+                        return titleObj.romaji || titleObj.english || titleObj.native || '';
+                    case 'rm':
+                        // Return the original language title (native for JP/KR/CN, english for others)
+                        if (countryOfOrigin === 'JP' && titleObj.native) {
+                            return titleObj.native;
+                        } else if (countryOfOrigin === 'KR' && titleObj.native) {
+                            return titleObj.native;
+                        } else if (countryOfOrigin === 'CN' && titleObj.native) {
+                            return titleObj.native;
+                        }
+                        return titleObj.english || titleObj.romaji || titleObj.native || '';
+                    default:
+                        return titleObj.romaji || titleObj.english || titleObj.native || '';
+                }
+            }
+
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).catch(err => {
+                    console.error('Could not copy text: ', err);
+                });
+            }
+
+            function saveHistory() {
+                localStorage.setItem('mangaSearchHistory', JSON.stringify(searchHistory));
+            }
+
+            function clearSearchHistory() {
+                if (confirm('Are you sure you want to clear all search history?')) {
+                    searchHistory = [];
+                    saveHistory();
+                    renderSearchHistory();
+                    showNotification('History cleared');
+                }
+            }
+
+            function renderSearchHistory() {
+                historyContainer.innerHTML = '';
+                
+                if (searchHistory.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'empty-state';
+                    emptyState.innerHTML = `
+                        <div class="empty-state-icon">🔍</div>
+                        <div>No search history yet</div>
+                    `;
+                    historyContainer.appendChild(emptyState);
+                    return;
+                }
+
+                // Group history by time
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                const yesterday = today - 86400000;
+                const threeDaysAgo = today - 259200000;
+                const sevenDaysAgo = today - 604800000;
+
+                const groupedHistory = {
+                    'Today': [],
+                    'Yesterday': [],
+                    '3 Days Ago': [],
+                    '7 Days Ago': [],
+                    'A While Ago': []
+                };
+
+                searchHistory.forEach(entry => {
+                    if (entry.timestamp >= today) {
+                        groupedHistory['Today'].push(entry);
+                    } else if (entry.timestamp >= yesterday) {
+                        groupedHistory['Yesterday'].push(entry);
+                    } else if (entry.timestamp >= threeDaysAgo) {
+                        groupedHistory['3 Days Ago'].push(entry);
+                    } else if (entry.timestamp >= sevenDaysAgo) {
+                        groupedHistory['7 Days Ago'].push(entry);
+                    } else {
+                        groupedHistory['A While Ago'].push(entry);
+                    }
+                });
+
+                // Render grouped history
+                for (const [groupName, entries] of Object.entries(groupedHistory)) {
+                    if (entries.length > 0) {
+                        const section = document.createElement('div');
+                        section.className = 'history-section';
+                        
+                        const title = document.createElement('div');
+                        title.className = 'history-title';
+                        title.textContent = groupName;
+                        section.appendChild(title);
+
+                        entries.forEach(entry => {
+                            const item = document.createElement('div');
+                            item.className = 'history-item';
+                            item.innerHTML = `
+                                <span class="history-item-icon">${entry.isManga ? '📖' : '🎬'}</span>
+                                ${entry.query} (${entry.api}, ${entry.language.toUpperCase()})
+                            `;
+                            
+                            item.addEventListener('click', () => {
+                                // Load the search
+                                searchInput.value = entry.query;
+                                languageDropdown.value = entry.language;
+                                apiDropdown.value = entry.api;
+                                isMangaMode = entry.isManga;
+                                
+                                if (entry.isManga) {
+                                    mangaModeButton.classList.add('active');
+                                    animeModeButton.classList.remove('active');
+                                    searchInput.placeholder = "Search for manga...";
+                                } else {
+                                    animeModeButton.classList.add('active');
+                                    mangaModeButton.classList.remove('active');
+                                    searchInput.placeholder = "Search for anime...";
+                                }
+                                
+                                // Clear and show results
+                                resultsContainer.innerHTML = '';
+                                if (entry.results.length > 0) {
+                                    let filteredResults = entry.results;
+                                    
+                                    if (hideNSFW) {
+                                        filteredResults = entry.results.filter(result => !result.isAdult);
+                                    }
+                                    
+                                    if (filteredResults.length === 0) {
+                                        updateEmptyState("No results found" + (hideNSFW ? " (NSFW content hidden)" : ""));
+                                        return;
+                                    }
+                                    
+                                    filteredResults.forEach(result => {
+                                        const resultItem = document.createElement('div');
+                                        resultItem.className = 'result-item';
+                                        resultItem.innerHTML = `
+                                            <img src="${result.coverImage}" alt="${result.title}" class="cover-art">
+                                            <div class="result-source">${result.source}</div>
+                                            <button class="result-view-button" data-url="${result.siteUrl || 'https://anilist.co'}">View</button>
+                                            <div class="result-info">
+                                                <div class="result-title">${result.title}</div>
+                                                <div class="result-chapters">${entry.isManga ? 'Chapters' : 'Episodes'}: ${result.chapters !== null && result.chapters !== undefined ? result.chapters : (result.episodes !== null && result.episodes !== undefined ? result.episodes : 'Unknown')}</div>
+                                            </div>
+                                        `;
+                                        resultItem.addEventListener('click', (e) => {
+                                            if (!e.target.classList.contains('result-view-button')) {
+                                                copyToClipboard(result.title);
+                                                showNotification(`Copied: ${result.title}`);
+                                            }
+                                        });
+                                        resultsContainer.appendChild(resultItem);
+                                    });
+
+                                    // Add event listeners to view buttons
+                                    document.querySelectorAll('.result-view-button').forEach(button => {
+                                        button.addEventListener('click', (e) => {
+                                            e.stopPropagation();
+                                            window.open(button.getAttribute('data-url'), '_blank');
+                                        });
+                                    });
+                                } else {
+                                    updateEmptyState("No results saved for this search");
+                                }
+                                
+                                // Close sidebar on mobile
+                                if (window.innerWidth <= 768) {
+                                    sidebar.classList.remove('open');
+                                }
+                            });
+                            
+                            section.appendChild(item);
+                        });
+                        
+                        historyContainer.appendChild(section);
+                    }
+                }
+            }
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('open');
+            }
+
+            function showNotification(message) {
+                notification.textContent = message;
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            function updateEmptyState(message = null) {
+                if (message || resultsContainer.children.length === 0) {
+                    if (!document.getElementById('emptyState')) {
+                        const emptyState = document.createElement('div');
+                        emptyState.className = 'empty-state';
+                        emptyState.id = 'emptyState';
+                        emptyState.innerHTML = `
+                            <div class="empty-state-icon">${isMangaMode ? '📖' : '🎬'}</div>
+                            <div>${message || `Search for ${isMangaMode ? 'manga' : 'anime'} to see results here`}</div>
+                        `;
+                        resultsContainer.appendChild(emptyState);
+                    } else if (message) {
+                        document.getElementById('emptyState').innerHTML = `
+                            <div class="empty-state-icon">${isMangaMode ? '📖' : '🎬'}</div>
+                            <div>${message}</div>
+                        `;
+                    }
+                } else if (document.getElementById('emptyState')) {
+                    document.getElementById('emptyState').remove();
+                }
+            }
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('open');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
